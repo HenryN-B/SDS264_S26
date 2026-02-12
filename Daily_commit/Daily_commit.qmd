@@ -1,6 +1,6 @@
 ---
 title: "Daily_commit"
-format: html
+format: pdf
 ---
 
 ## My daily Commit Diary
