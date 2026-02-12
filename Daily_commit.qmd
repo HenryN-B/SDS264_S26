@@ -1,0 +1,15 @@
+---
+title: "Daily_commit"
+format: html
+---
+
+## My daily Commit Diary
+
+
+### Thursday, Feb. 12, 2026
+
+I'm ready to commit this!!!
+```{r}
+1+1
+```
+
