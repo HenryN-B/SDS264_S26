@@ -1,7 +1,7 @@
 ---
 title: 'Review of Data Science 1'
 format:
-  html: default
+  pdf: default
 editor_options: 
   chunk_output_type: console
 ---
@@ -22,14 +22,17 @@ a) A scatterplot with points and smoothers colored by state.  Make sure the lege
 
 ```{r}
 vaccine_data |> 
-  filter(state %in% c("Minnesota", "Iowa", "Wisconsin", "North Dakota", "South Dakota" ))|>
-ggplot(aes(x=perc_Biden, y = perc_complete_vac, color = fct_reorder2(state, perc_Biden, perc_complete_vac))) +
+  filter(state %in% c("Minnesota", "Iowa", 
+                      "Wisconsin", "North Dakota", "South Dakota" ))|>
+ggplot(aes(x=perc_Biden, 
+           y = perc_complete_vac, 
+           color = fct_reorder2(state, perc_Biden, perc_complete_vac))) +
   geom_point(alpha = 0.7) +
   geom_smooth(se = FALSE)  +
   labs(x = "Percent votes for Biden", 
        y = "Percent of vacinations compltee",
        color = "State",
-       title = "Graph")
+       title = "vactionation percent vs votes for biden")
 
 ```
 
@@ -38,21 +41,22 @@ b) One plot per state containing a scatterplot and a smoother.
 
 ```{r}
 vaccine_data |>
-   filter(state %in% c("Minnesota", "Iowa", "Wisconsin", "North Dakota", "South Dakota" ))|>
+   filter(state %in% c("Minnesota", "Iowa", "Wisconsin", 
+                       "North Dakota", "South Dakota" ))|>
   ggplot(aes(x=perc_Biden, y = perc_complete_vac, color = state)) +
   geom_point() +
   geom_smooth(se = FALSE)  +
   facet_wrap(~state) +
   labs(x = "Votes for Biden", 
        y = "Percent of vacinations compltee",
-       title = "Graph")
+       title = "vactionation percent vs votes for biden by state")
   
 ```
 
 
 Describe which plot you prefer and why.  What can you learn from your preferred plot?
-*Come back to this one*
-I prefer plot b because is is less cluttered and esair to read and see the general tred of each state
+
+I prefer plot a because all of the info is on one plot and easy to access. We can learn all of the trends compared to the other states very esaily. 
 
 4. Produce 3 different plots for illustrating the relationship between the rural_urban_code and percent vaccinated.  Hint: you can sometimes turn numeric variables into categorical variables for plotting purposes (e.g. `as.factor()`, `ifelse()`).
 
@@ -91,6 +95,8 @@ ggplot(aes(x = urban_group, y = perc_complete_vac, fill = urban_group)) +
     title = "Vaccination Rates Urban vs Rural")
 ```
 
+State your favorite plot, why you like it better than the other two, and what you can learn from your favorite plot.  Create an alt text description of your favorite plot, using the Four Ingredient Model.  See [this link](https://drive.google.com/file/d/1BuEbL6vETBcFULmtlrwwZBUYhdEg0Zqb/view?usp=sharing) for reminders and references about alt text.
+
 My favorite graph is the last one where it is just grouped by urban and rural. It is better then the other 2 because in the first the data does not make much sense presented as a numeric data, and the second has too many boxes, in which it does not tell the reader if 1 is urban or rural.
 
 alt text:
@@ -98,11 +104,9 @@ alt text:
 This is a box plot showing the trend in vaccination rates in urban vs rural county. There is 2 boxes for the rural and urban counties. On the y axis we have the percent of completed vaccination in that county ranging from 0 to 100. We can see that the mean vaccination percent for rural county's is around 40 while urban is around 50. This suggests that people on the more urban areas are more likely to be vaccinated.
 
 
-State your favorite plot, why you like it better than the other two, and what you can learn from your favorite plot.  Create an alt text description of your favorite plot, using the Four Ingredient Model.  See [this link](https://drive.google.com/file/d/1BuEbL6vETBcFULmtlrwwZBUYhdEg0Zqb/view?usp=sharing) for reminders and references about alt text.
 
 
 5. BEFORE running the code below, sketch the plot that will be produced by R.  AFTER running the code, describe what conclusion(s) can we draw from this plot?  
-
 ```{r}
 #| eval: FALSE
 
@@ -116,6 +120,7 @@ vaccine_data |>
     geom_point(aes(x = IQR_Biden, y = big_states))
 ```
 
+This is a graph of the top 10 biggest states by amount of county with the IQR of perc_biden as the x var, it will also be ordered by IQR. We can learn from the graph which of the biggest states(by number of county) had the biggest differences in percentages of votes for Biden between county's.   
 
 6. In this question we will focus only on the 12 states in the Midwest (i.e. where region == "Midwest").
 
@@ -130,7 +135,7 @@ a) Create a tibble with the following information for each state.  Order states 
 (midwest <- vaccine_data |>
   filter(region == "Midwest") |>
   group_by(state) |>
-  mutate(
+  summarize(
     num_rural_codes = n_distinct(rural_urban_code),
     state_population = sum(tot_pop, na.rm = TRUE),
     prop_metro = mean(metro_status == "Metro", na.rm = TRUE),
@@ -148,12 +153,11 @@ midwest |>
   geom_point() +
   geom_smooth(method = "lm", se = F) +
   labs(x = "Proportion of metro counties",
-       y = "Median Unemployment")
+       y = "Median Unemployment",
+       color = "Number of codes")
 ```
 
-
-
-7. Generate an appropriate plot to compare vaccination rates between two subregions of the US: New England (which contains the states Maine, Vermont, New Hampshire, Massachusetts, Connecticut, Rhode Island) and the Upper Midwest (which, according to the USGS, contains the states Minnesota, Wisconsin, Michigan, Illinois, Indiana, and Iowa).  What can you conclude from your plot?
+We can see that as the proportion of unemployment grows so does the median unemployment rate. We can also see that there seems to be a trend with lower number of urban rural codes having less unemployment. This would maybe tell us that states with larger metro areas where hit harder by layoff during and after the pandemic.
 
 
 In this next section, we consider a few variables that could have been included in our data set, but were NOT.  Thus, you won't be able to write and test code, but you nevertheless should be able to use your knowledge of the tidyverse to answer these questions.
@@ -183,11 +187,19 @@ temp <- vaccine_data |>
 
 a) Describe the tibble `temp` created above.  What would be the dimensions?  What do rows and columns represent?
 
+It would be a table that shows 3 ranges of the number of dcotors per resident and shows the mean percent vacnated and mean whire percent of each county. The dimension would be 3 by 3. The rows are each of the 3 ranges of residents per doctor. and the columns are the number of county in that range, the mean vac rate, and the percent of white residents in that range. and we are only keeping the countys with less then 95% vactionation rate.
+
 b) What would happen if we replaced `new_perc_vac = ifelse(perc_complete_vac > 95, NA, perc_complete_vac)` with `new_perc_vac = ifelse(perc_complete_vac > 95, perc_complete_vac, NA)`?
+
+We would be only kepping the countys with more then a 95 percent vactionation rate.
 
 c) What would happen if we replaced `mean_white = mean(perc_white, na.rm = TRUE)` with `mean_white = mean(perc_white)`?
 
+it would most likly become NA becusae once NA is counted the mean just becomes NA.
+
 d) What would happen if we removed `group_by(MD_group)`?
+
+Then we would still have every county as each row.
 
 
 9. Hypothetical R chunk #2:
@@ -215,10 +227,15 @@ vaccine_data |>
 
 a) Why would the first plot produce an error?
 
+becuase the x and y need to be in the ggplot call not the geom_point.
+
 b) Describe the tibble `temp` created above.  What would be the dimensions?  What do rows and columns represent?
+
+This is a table that shows the number of states in each HR_party. I will be 3 rows, being the 3 party's with the lowest control. It will have 2 columns one for the party name and the other is the number of states it controls.  
 
 c) What would happen if we replaced `fct_reorder(HR_party, perc_over_65, .fun = median)` with `HR_party`?
 
+The order of the box plots would be alphabetical and look not nice.
 
 10. Hypothetical R chunk #3:
 
@@ -238,8 +255,16 @@ vaccine_data |>
 
 a) Describe the tibble piped into the ggplot above.  What would be the dimensions?  What do rows and columns represent?
 
+This is a table of the 4 biggist states with the cost county's. It will be 45 rows of each state and code pair with the last being other, and each row will have the state, code, and the mean number of MD's per resident excluding NA values.
+
 b) Carefully describe the plot created above.
+
+This will be a plot that has a line that repersents each of the 5 state/other. The x axis is the rural_urban code for each state, and the y is the mean people per MD for each stat code pair. each line is also colored by the state or other. The legand will be ordered by the highest to lowest mean_people_per_MD for code 9.
 
 c) What would happen if we removed `filter(!is.na(people_per_MD))`?
 
+The mean would likly become 0 due to the fact that people_per_MD most likly has some NA's
+
 d) What would happen if we replaced `fct_reorder2(state_lump, rural_urban_code, mean_people_per_MD)` with `state_lump`?
+
+The legend for the lines would be alphabetical.
