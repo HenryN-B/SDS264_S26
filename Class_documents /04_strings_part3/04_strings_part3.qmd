@@ -1,7 +1,7 @@
 ---
 title: "Strings: Extra Practice (Part 3)"
 format:
-  html: default
+  pdf: default
 editor_options: 
   chunk_output_type: console
 ---
@@ -22,28 +22,62 @@ library(httr)
 
 1. Describe the equivalents of ?, +, * in {m,n} form.
 
+?: {0,1}
++: {1, }
+*: {0, }
 
 2. Describe, in words, what the expression `"(.)(.)\\2\\1"` will match, and provide a word or expression as an example.
 
+This will be string that have some 2 charterers and then the second repeats then the first. A example would be "abba" or "noon". 
 
 3. Produce an R string which the regular expression represented by `"\\..\\..\\.."` matches.  In other words, find a string `y` below that produces a TRUE in `str_detect`.
 
+.A.B.C
 
 4. Solve with `str_subset()`, using the words from `stringr::words`:
 
 - Find all words that start or end with x.
-- Find all words that start with a vowel and end with a consonant.
-- Find all words that start and end with the same letter
+```{r}
+str_subset(stringr::words, "^x|x$")
+```
 
+- Find all words that start with a vowel and end with a consonant.
+```{r}
+str_subset(stringr::words, "^[aeiou].*[^aeiou]$")
+```
+
+- Find all words that start and end with the same letter
+```{r}
+str_subset(stringr::words, "^(.).*\\1$")
+```
 
 5. What words in `stringr::words` have the highest number of vowels? What words have the highest proportion of vowels? (Hint: what is the denominator?)  Figure this out using the tidyverse and piping, starting with `as_tibble(words) |>`.
 
+```{r}
+vowel_tabel <- as_tibble(stringr::words) |>
+  mutate(vowel_count = str_count(value, "[aeiou]"),
+         prop = vowel_count/str_length(value))
+
+vowel_tabel |>
+  arrange(-vowel_count)
+
+vowel_tabel |>
+  arrange(-prop)
+```
 
 6. From the Harvard sentences data, use `str_extract` to produce a tibble with 3 columns:  the sentence, the first word in the sentence, and the first word ending in "ed" (NA if there isn't one).
 
+```{r}
+as_tibble(sentences) |>
+  mutate(first_word = str_extract(value, "[^ ]+"),
+         first_ed = str_extract(value, "\\b[a-zA-Z]*ed\\b"))
+```
 
 7. Find and output all contractions (words with apostrophes) in the Harvard sentences, assuming no sentence has multiple contractions.
 
+```{r}
+str_extract(sentences, "[a-zA-Z]*\\'[a-zA-Z]*")
+```
 
 8. *Carefully* explain what the code below does, both line by line and in general terms.
 
@@ -52,57 +86,7 @@ temp <- str_replace_all(words, "^([A-Za-z])(.*)([a-z])$", "\\3\\2\\1")
 as_tibble(words) |>
   semi_join(as_tibble(temp)) |>
   print(n = Inf)
+
 ```
 
-
-## Coco and Rotten Tomatoes (Skip for now)
-
-We will check out the Rotten Tomatoes page for the 2017 movie Coco, scrape information from that page (we'll get into web scraping in a few weeks!), clean it up into a usable format, and answer some questions using strings and regular expressions.
-
-```{r}
-#| eval: false
-
-# used to work
-# coco <- read_html("https://www.rottentomatoes.com/m/coco_2017")
-
-# robotstxt::paths_allowed("https://www.rottentomatoes.com/m/coco_2017")
-
-library(polite)
-coco <- "https://www.rottentomatoes.com/m/coco_2017" |>
-  bow() |> 
-  scrape()
-
-top_reviews <- 
-  "https://www.rottentomatoes.com/m/coco_2017/reviews?type=top_critics" |> 
-  bow() |> 
-  scrape()
-top_reviews <- html_nodes(top_reviews, ".review-text")
-top_reviews <- html_text(top_reviews)
-
-user_reviews <- 
-  "https://www.rottentomatoes.com/m/coco_2017/reviews?type=user" |> 
-  bow() |> 
-  scrape()
-user_reviews <- html_nodes(user_reviews, ".js-review-text")
-user_reviews <- html_text(user_reviews)
-```
-
-
-9. `top_reviews` is a character vector containing the 20 most recent critic reviews (along with some other junk) for Coco, while `user_reviews` is a character vector with the 10 most recent user reviews.
-
-a) Explain how the code below helps clean up both `user_reviews` and `top_reviews` before we start using them.
-
-```{r}
-#| eval: false
-
-user_reviews <- str_trim(user_reviews)
-top_reviews <- str_trim(top_reviews)
-```
-
-b) Print out the critic reviews where the reviewer mentions "emotion" or "cry".  Think about various forms ("cried", "emotional", etc.)  You may want to turn reviews to all lower case before searching for matches.
-
-c) In critic reviews, replace all instances where "Pixar" is used with its full name: "Pixar Animation Studios".
-
-d) Find out how many times each user uses "I" in their review.  Remember that it could be used as upper or lower case, at the beginning, middle, or end of a sentence, etc.
-
-e) Do critics or users have more complex reviews, as measured by average number of commas used?  Be sure your code weeds out commas used in numbers, such as "12,345".
+First we take each word and flip the first and last letter of each word. Then we semi join with the whole words table, which only keeps the words that having matching entires in temp, which is only words that have that word with the first and last letters fliped. This will be words that start and end with the same letter but also words like no and on.

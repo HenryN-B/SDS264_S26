@@ -1,0 +1,81 @@
+---
+title: "Project"
+format: html
+---
+
+```{r}
+#| include: false
+
+library(tidyverse)
+library(tidytext)
+library(textdata)
+library(wordcloud)
+library(wordcloud2)
+library(viridis)
+library(ggthemes)
+```
+
+```{python}
+
+
+from pathlib import Path
+import re
+
+p = Path("./data/Olivia_Rodrigo_Songs")
+
+exclude = {
+    ".DS_Store",
+    "OTHERS"
+}
+
+with open("data/table.csv", "w") as csv:
+    _ = csv.write("album, song, text\n")
+    for album in p.iterdir():
+        if album.name in exclude:
+            continue
+        album_name = re.search(r"/.*/(.*)", str(album)).group(1)
+        #album_name = album.name
+        for song in album.iterdir():
+            if song.suffix != ".txt":
+                continue
+            song_name = re.search(r"/(.*)/(.*).txt$", str(song)). group(2)
+            #song_name = song.stem
+            with open(str(song), "r") as file:
+                for line in file:
+                    line = line.rstrip("\n")
+                    _ = csv.write(f"{album_name}, {song_name}, \"{line}\"\n")
+```
+
+
+```{r}
+#| warning: false
+#| #| results: 'hide'
+
+lyrics <- read_csv("~/Documents/Programing/R/SDS264_S26/Mini_Project_One/data/table.csv")
+
+tidy_lyrics <- lyrics |>
+  mutate(line = row_number()) |>
+  unnest_tokens(word, text, token = "words") 
+```
+
+
+```{r}
+bing_sentiments <- get_sentiments(lexicon = "bing")
+nrc_sentiments <- get_sentiments(lexicon = "nrc")
+afinn_sentiments <- get_sentiments(lexicon = "afinn")
+
+tidy_lyrics |>
+  inner_join(afinn_sentiments, by = "word") |>
+  group_by(album, song) |>
+  summarize(afinn_score = sum(value, na.rm = TRUE)) |>
+  ggplot(aes(x = song, y = afinn_score, fill = album)) +
+  geom_col() +
+    scale_fill_manual(values = c(
+    "GUTS" = "#602e9e",
+    "SOUR" = "#D3BEE8")) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(x = "Song", y = "Positivity", color = "Album")
+  
+
+```
+
