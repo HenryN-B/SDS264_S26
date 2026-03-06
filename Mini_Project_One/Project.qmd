@@ -1,6 +1,11 @@
 ---
-title: "Project"
-format: html
+title: "Analyzing Olivia Rodrigo's Lyrics"
+author: "Henry Norton-Bower"
+date: "2/6/26"
+format:
+  pdf: default
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r}
@@ -13,69 +18,204 @@ library(wordcloud)
 library(wordcloud2)
 library(viridis)
 library(ggthemes)
+library(knitr)
 ```
+# Introduction 
 
+Olivia Rodrigo is a musical artist who made her solo debut in 2021 with the album SOUR. Before that she was a on many Disney channel shows like Bizaardvark and High School Musical: The Musical: The Series. Since SOUR she has created one more album GUTS and a deluxe version of GUTS. She is also starting to tease her 3rd album which is expected to come out late 2026.
+
+One thing that I wanted to figure out is with many of her songs having the themes of heart break and sadness, what words and how does she use to convey these strong emotions. I was also curious how her overall tone has shifted between her two albums but also who the songs are about. Are the songs more self centered or are they more focused on others and has that changed between albums.
+
+To help answer some of these question I found a dataset on [kaggle](https://www.kaggle.com/datasets/mehaksingal/olivia-rodrigo-lyrics-datasetl) which was the raw text files of her lyrics for those 2 albums including the songs off of the deluxe version of GUTS.
 ```{python}
+#| include: true 
+#| results: 'hide'
 
+# Python script that breaks down the text files into a csv.
 
-from pathlib import Path
-import re
+from pathlib import Path # Import file paths library.
+import re # Import regex.
 
-p = Path("./data/Olivia_Rodrigo_Songs")
+p = Path("./data/Olivia_Rodrigo_Songs") # Path to .txt files.
 
 exclude = {
     ".DS_Store",
     "OTHERS"
-}
+} # A few folders to ignore including.
 
-with open("data/table.csv", "w") as csv:
-    _ = csv.write("album, song, text\n")
-    for album in p.iterdir():
+with open("data/lyrics_data.csv", "w") as csv: # Open file to write too
+    _ = csv.write("album, song, text\n") # Start the csv with column names.
+    
+    # Iterate through each item in p ignoring exclude.
+    for album in p.iterdir(): 
         if album.name in exclude:
             continue
+        
+        # Use regex to extract album name from file path.
         album_name = re.search(r"/.*/(.*)", str(album)).group(1)
-        #album_name = album.name
+        
+        # Iterate through each song .txt file.
         for song in album.iterdir():
             if song.suffix != ".txt":
                 continue
+            
+            # Use regex to extract song name from file path.
             song_name = re.search(r"/(.*)/(.*).txt$", str(song)). group(2)
-            #song_name = song.stem
+            
+            # Write each line to the csv.
             with open(str(song), "r") as file:
                 for line in file:
                     line = line.rstrip("\n")
                     _ = csv.write(f"{album_name}, {song_name}, \"{line}\"\n")
 ```
 
+Here we loop through each text file and extract the text line by line. We also are getting the album name and song title using regular expressions on the files name.
 
 ```{r}
 #| warning: false
-#| #| results: 'hide'
+#| results: 'hide'
+#| echo: false
 
-lyrics <- read_csv("~/Documents/Programing/R/SDS264_S26/Mini_Project_One/data/table.csv")
+# Import dataset.
+lyrics_tibble <- read_csv("~/Documents/Programing/R/SDS264_S26/Mini_Project_One/data/lyrics_data.csv")
 
-tidy_lyrics <- lyrics |>
+# Tokenify the data.
+tidy_lyrics <- lyrics_tibble |>
   mutate(line = row_number()) |>
   unnest_tokens(word, text, token = "words") 
 ```
 
+One things that we notice is that the song title are currently separated by underscore not space. While we normal prefer this for tidy dataset reasons, I want to change it so that they are separated by spaces because it will look nicer when we start visualizing our data. To solve this a `str` function can be used to replace all "_"'s with spaces.
 
 ```{r}
-bing_sentiments <- get_sentiments(lexicon = "bing")
-nrc_sentiments <- get_sentiments(lexicon = "nrc")
-afinn_sentiments <- get_sentiments(lexicon = "afinn")
+#| results: 'hide'
 
-tidy_lyrics |>
-  inner_join(afinn_sentiments, by = "word") |>
-  group_by(album, song) |>
-  summarize(afinn_score = sum(value, na.rm = TRUE)) |>
-  ggplot(aes(x = song, y = afinn_score, fill = album)) +
-  geom_col() +
-    scale_fill_manual(values = c(
-    "GUTS" = "#602e9e",
-    "SOUR" = "#D3BEE8")) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  labs(x = "Song", y = "Positivity", color = "Album")
-  
+# Replace "_" with a space (str_replace)
+tidy_lyrics <- tidy_lyrics |>
+  mutate(song = str_replace_all(song, "_"," "))
 
+# Set all words to lowercase(str_to_lower)
+tidy_lyrics <- tidy_lyrics |>
+  mutate(word = str_to_lower(word))
 ```
 
+One other small thing to note on song title formatting, is that all song titles have no capitalization, but this is intended as none of the songs have any capitalization.
+
+# Analysis 
+
+Next we will try a very basic test analysis. I've chosen some words that are commonly associated with heart break. We can then detect to mark if any giving line has one of the words associated with heart break and then mark it as such.
+
+```{r}
+# Use str_detect to make a new column
+lyrics_tibble <- lyrics_tibble |>
+  mutate(
+    is_emotional = str_detect(text,
+                              "cry|hurt|pain|hate|love|sorry|miss|break"))
+```
+
+```{r}
+# Make a table of emotional lines in SOUR vs GUTS
+emotional_tibble <- lyrics_tibble |>
+  group_by(album) |>
+  summarise(
+    total_lines = n(),
+    emotional_lines = sum(is_emotional, na.rm = TRUE),
+    pct_emotional = emotional_lines / total_lines
+  )
+```
+
+```{r}
+#| echo: false
+
+kable(emotional_tibble,col.names = c("Album", "Total Lines", "Emotional Lines", "Proportion"),  caption = "Table of emotional lines in SOUR vs GUTS")
+```
+
+We can see in Table 1 that in GUTS there was 64 emotional line making up around 7 percent of the line, while SOUR had only 49, but in all SOUR has line total lines making it come out to SOUR having around 9 percent emotional lines.
+
+This is cool information but my chosen list just is not that robust and is probably missing many other emotional words. To help with this we can use a pre made lexicon that will include much more words and will be much more robust.
+
+Here we use the AFINN lexicon that scores words on their positivity to negativity, we then take the average score of each word for both albums.
+```{r}
+#| fig-cap: "Alt-Text: This Figure is a bar chart of the AFINN sentiment score for Olivia Rodrigo's 2 albums SOUR and GUTS. The x-axis is her two albums and the y-axis had the sentiment score from 0 to 0.6 (scores range from -3 very negative to 3 very positive). We can see that SOUR has a value of about 0.58 which tells us that it is moderately positive, while GUTS has a score of 0.18 which tells us that it is only very slightly positive and less positive then SOUR."
+tidy_lyrics |>
+  inner_join(get_sentiments("afinn"), 
+             by = "word") |>
+  group_by(album) |>
+  summarise(avg_sentiment = mean(value)) |>
+  mutate(album = fct_relevel(album, "SOUR", "GUTS")) |>
+  ggplot(aes(x = album, 
+             y = avg_sentiment, 
+             fill = album)) +
+  geom_col() +
+  labs(title = "Average Sentiment Score by Album",
+       y = "Avg AFINN Score", x = "Album") + 
+  theme_bw() + 
+  scale_fill_manual(values = c(
+    "GUTS" = "#3D376B",
+    "SOUR" = "#8681BD")) 
+```
+
+We see that SOUR has a score of 0.6 which means its slightly positive while GUTS has a score of 0.2. This helps answer how the tone has changed over the two albums, that GUTS is more negative then SOUR but still slightly positive. 
+
+Next we can use the "nrc" sentiment lexicon that groups each words with their giving emotions. This is the more robust version of what we did in table 1, but this time we are looking at the words that Olivia Rodrigo uses to convey the heart break in her albums.
+
+```{r}
+#| fig-cap: ""
+# Make the figure of top words 
+tidy_lyrics |>
+  inner_join(get_sentiments("nrc"), 
+             by = "word", 
+             relationship = "many-to-many") |>
+  filter(sentiment == "sadness") |>
+  count(album, word, sort = TRUE) |>
+  group_by(album) |>
+  slice_max(n, n = 10) |>
+  ggplot(aes(x = reorder_within(word, n, album), y = n, fill = album)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ fct_relevel(album, "SOUR", "GUTS"), scales = "free_y") +
+  scale_x_reordered() + 
+  coord_flip() +
+  labs(title = "Top Sadness Words by Album", x = "Word", y = "Count") + 
+  theme_bw() +
+  scale_fill_manual(values = c("GUTS" = "#3D376B", "SOUR" = "#8681BD")) 
+```
+
+In SOUR, the sadness lexicon is dominated by jealousy (n = 12), which appears nearly twice as often as the next most frequent word most likely because it is the title of one of the songs, but also reflecting the album's central themes of romantic envy and insecurity. Words like hate, sick, broke, and traitor paint a picture of betrayal and heartbreak.
+
+In GUTS, the emotional vocabulary becomes a bit darker. Lie tops the chart (n = 15), suggesting themes of dishonesty, while the presence of suicide (referring to "social suicide"), hell, and bleeding points to a more emotional feeling compared to SOUR. Despite this shift in tone, words like hate, broke, and bad appear in both albums, suggesting some continuity in Rodrigo's emotional themes across her discography.
+
+Overall, while both albums draw heavily on the language of heartbreak, SOUR's sadness leans toward feelings of jealousy and betrayal, whereas GUTS reflects a deeper emotional feeling.
+
+And lastly to answer the final question I had about this dataset, who are the song made about? Are they self centered, about someone, or FOR someone. To answer this I will use a string function to detect when ever a first, second or third person pronouns is used.
+
+```{r}
+# Make the person_tibble using regex.
+person_tibble <- lyrics_tibble |>
+  mutate(first_person = str_detect(text, 
+                                   "^I\\b"),
+         second_person = str_detect(str_to_lower(text), 
+                                    "\\b(you|your|yours|yourself)\\b"),
+         third_person = str_detect(str_to_lower(text),                        
+                                   "\\b(he|him|his|she|her|hers
+                                   |they|them|theirs)\\b"),
+         album = fct_relevel(album, "SOUR", "GUTS")) |>
+  group_by(album) |>
+  summarise("First Person Proportion" = mean(first_person, na.rm = TRUE),
+            "Second Person Proportion" = mean(second_person, na.rm = TRUE),
+            "Third Person Proportion" = mean(third_person, na.rm = TRUE))
+```
+
+```{r}
+#| echo: false
+
+# Make nice looking table.
+kable(person_tibble, caption = "Table of Point of View Proportion")
+```
+
+Table 2 shows the proportions of lines that are written in that point of view. Sour clearly has the highest proportion of second person lines with almost 47 percent of all lines in this album. This suggests that in SOUR many of Rodrigo's are directed to specific people, which would make since because much of the album focuses on her breakup with a certain individual. 
+
+Now looking at GUTS, second person is still the highest at 27 percent but the other 2 have grown with first person making up almost 23 percent of the lines. This suggests that the album most likely has a more personal tone and songs about how she feels, which again lines up with the real tone of the album.
+
+# Conclusion
+
+Across both albums, this analysis confirms that heartbreak is central to Olivia Rodrigo's songwriting, but the way she expresses it has shifted between SOUR and GUTS. SOUR is more emotionally reactive, using language of jealousy and betrayal and directing it outward through its heavy use of second person pronouns. GUTS, while still rooted in heartbreak, carries a darker and more personal tone, reflected in its lower AFINN sentiment score, heavier sadness vocabulary, and growing use of first person language. I also tried to get the most unique words in each album using tf-idf, but the most unique words where mostly the song titles themselves, which through more work I could remove but ran out of space and time.
