@@ -1,0 +1,12 @@
+name: pres
+title: Pres
+username: norton9
+account: norton9
+server: rconnect.stolaf.edu
+hostUrl: https://rconnect.stolaf.edu/__api__
+appId: 1312
+bundleId: 4030
+url: https://rconnect.stolaf.edu/content/af1b2e3a-1e79-4f8d-9dcb-47df9e64587f/
+version: 1
+asMultiple: FALSE
+asStatic: TRUE

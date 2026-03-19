@@ -1,0 +1,289 @@
+---
+title: "Patchwork"
+subtitle: "Henry Norton-Bower"
+format:
+  revealjs: 
+    theme: solarized
+    chalkboard: 
+      buttons: false
+    preview-links: auto
+---
+
+```{r}
+#| include: false
+library(tidyverse)
+library(ggthemes)
+library(patchwork)
+```
+
+## What is Patchwork?
+
+::: incremental
+- A package to combine ggplot's into one nice looking figure.
+- Built on top of ggplot and works with any ggplot object
+- Uses intuitive operators like `+`, `/`, and `|` to arrange plots
+- Handles alignment, spacing, and shared legends automatically
+- Great for making papers look better and more clean
+:::
+
+# How do each of the operators work?
+
+---
+
+## The `+` Operator
+
+- places ggplot objects next to each other in a grid.
+
+```{r} 
+#| echo: true
+#| fig-width: 10
+#| fig-height: 4.5
+#| output: false
+#| code-line-numbers: "0|12"
+
+fig1 <- penguins |>
+  ggplot(aes(x = species, y = body_mass, fill = species)) +
+  geom_boxplot() +
+  theme_bw()
+
+fig2 <- penguins |>
+  filter(!is.na(sex)) |>
+  ggplot(aes(x=sex, fill = sex)) +
+  geom_bar() +
+  theme_bw()
+
+fig1+fig2
+```
+
+---
+
+## Example of the `+` Operator
+
+```{r}
+#| echo: false
+fig1+fig2 
+```
+
+---
+
+## Example of the `+` Operator
+
+And Patchwork will auto wrap the row for us.
+
+```{r}
+#| echo: false
+fig3 <- penguins |>
+  ggplot(aes(x=island, fill = island)) +
+  geom_bar() +
+  theme_bw()
+
+
+fig4 <- penguins |>
+  ggplot(aes(x = species, y = flipper_len, fill = species)) +
+  geom_boxplot() +
+  theme_bw()
+```
+
+```{r}
+#| echo: true
+#| output: false
+#| code-line-numbers: "1"
+fig1+fig2+fig3+fig4
+```
+
+::: {.fragment .fade-in}
+```{r}
+fig1+fig2+fig3+fig4
+```
+:::
+
+---
+
+## The `/` operator
+
+- stacks ggplot objects on top of each other rather then in a grid and can be combined with the `+`
+
+
+```{r} 
+#| echo: true
+#| fig-width: 10
+#| fig-height: 4.5
+#| output: false
+#| code-line-numbers: "0|7"
+
+(fig1+fig2)/fig3
+```
+
+
+---
+
+## Example of the `/` Operator
+
+```{r}
+(fig1+fig2)/fig3
+```
+
+---
+
+## The `|` operator
+- places ggplot objects explicitly side-by-side, preventing auto-wrapping which is useful when combined with `/` for precise layout control.
+```{r}
+#| echo: true
+#| fig-width: 10
+#| fig-height: 4.5
+#| output: false
+fig1 | (fig2 / fig3)
+```
+---
+
+## Example of the `|` Operator
+
+```{r}
+fig1 | (fig2 / fig3)
+```
+
+
+# Extra Styling Options
+
+---
+
+## `plot_layout()`
+
+- Defines the structure of the layout grid: number of rows, columns, how plots fill it, and shared legends.
+
+::: incremental
+- `ncol`: number of objects per column.
+- `nrow`: number of objects per rows. 
+- `byrow`: True by default, if false the plots will be filled in in column order.
+- `widths`/`heights`: The widths and heights of each row and columns.  
+- `guides`: set to "collect" if you want shared legend
+:::
+
+
+---
+
+## `plot_layout()`
+
+::: {.r-stack}
+
+::: {.fragment .fade-in-then-out}
+```{r}
+#| echo: true
+fig1+fig2+fig3
+```
+:::
+
+::: {.fragment .fade-in-then-out}
+```{r}
+#| echo: true
+fig1+fig2+fig3 + plot_layout(nrow = 2)
+```
+:::
+
+::: {.fragment .fade-in-then-out}
+```{r}
+#| echo: true
+fig1+fig2+fig3+fig4+ plot_layout(nrow = 2, 
+                             byrow = FALSE, 
+                             guides = "collect") 
+```
+:::
+
+:::
+
+---
+
+## `plot_annotation()`
+
+::: {.r-stack}
+
+::: {.fragment .fade-in-then-out style="position: absolute; top: 100px; left: 0;"}
+- Can be used to add a title, subtitle, or caption to the figure.
+:::
+
+::: {.fragment .fade-in-then-out}
+```{r}
+#| echo: true
+fig1 + fig2 + plot_layout(guides = "collect") +
+  plot_annotation(title = "Combined Penguin Figures",
+                  caption = "Data: palmerpenguins R package",
+                  theme = theme(
+                    plot.title = element_text(size = 16, face = "bold")))
+```
+:::
+
+:::
+
+---
+
+## `guide_area()`:
+
+This can be added to set aside area for the guide of the figure.
+
+```{r}
+#| echo: true
+guide_area() + fig1 + fig2 + 
+  plot_layout(guides = "collect") 
+```
+
+
+---
+
+## Something to note 
+
+- Even after combining plots with patchwork, you can still modify individual ggplot objects using `+` as usual and patchwork won't interfere.
+```{r}
+#| echo: true
+fig1 + theme_classic() + fig2 + theme_dark()
+```
+
+---
+## One Last Graph
+
+```{r}
+p1 <- penguins |>
+  drop_na() |> # get rid of all NA
+  ggplot(aes(x = flipper_len, y = body_mass, color = species)) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 0.8) +
+  labs(x = "Flipper length (mm)", y = "Body mass (g)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+p2 <- penguins |>
+  drop_na() |>
+  ggplot(aes(x = species, y = bill_len, fill = species)) +
+  geom_violin(alpha = 0.7) +
+  geom_boxplot(width = 0.1, fill = "white", outlier.shape = NA) + # Makes a little cute box plot in the violin plot
+  labs(x = NULL, y = "Bill length (mm)") +
+  theme_minimal() 
+
+p3 <- penguins |>
+  drop_na() |>
+  ggplot(aes(x = bill_len, fill = species)) +
+  geom_density(alpha = 0.5) +
+  labs(x = "Bill length (mm)", y = "Density", fill = "Species") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+p4 <- penguins |>
+  drop_na() |>
+  ggplot(aes(x = island, fill = species)) +
+  geom_bar(position = "fill") +
+  labs(x = NULL, y = "Proportion", fill = "Species") +
+  scale_y_continuous(labels = scales::percent) + # makes the scale percent :D
+  theme_minimal() +
+  theme(legend.position = "none")
+
+(p1 | p2) / (p4 | p3) +
+  plot_layout(guides = "collect") +
+  plot_annotation(
+    title = "Penguins: Body Characteristics Across Species",
+    caption = "Data: palmerpenguins R package",
+    theme = theme(
+      plot.title = element_text(size = 16, face = "bold"))
+  )
+```
+
+
+
